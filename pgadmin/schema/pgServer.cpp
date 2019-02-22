@@ -39,7 +39,7 @@
 #include "dlg/dlgServer.h"
 #include "schema/edbResourceGroup.h"
 
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 #include "utils/sshTunnel.h"
 #endif
 
@@ -75,7 +75,7 @@ pgServer::pgServer(const wxString &newName, const wxString &newHostAddr, const w
 	createPrivilege = false;
 	sshTunnel = _sshTunnel;
 
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 	// SSH Tunnel
 	tunnelObj = NULL;
 	tunnelHost = newTunnelHost;
@@ -98,7 +98,7 @@ pgServer::~pgServer()
 	if (conn)
 		delete conn;
 
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 	if(tunnelObj)
 	{
 		if(tunnelObj->IsAlive())
@@ -229,7 +229,7 @@ pgConn *pgServer::CreateConn(wxString dbName, OID oid, wxString applicationname)
 	}
 
 	pgConn *conn = NULL;
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 	if(sshTunnel)
 	{
 		conn = new pgConn(local_listenhost, service, hostaddr, dbName, username, password, local_listenport, rolename, ssl, oid, applicationname, sslcert, sslkey, sslrootcert, sslcrl, sslcompression);
@@ -265,7 +265,7 @@ wxString pgServer::GetFullIdentifier()
 
 bool pgServer::Disconnect(frmMain *form)
 {
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 	if(tunnelObj)
 	{
 		if(tunnelObj->IsAlive())
@@ -747,7 +747,7 @@ int pgServer::Connect(frmMain *form, bool askPassword, const wxString &pwd, bool
 
 		wxString host;
 		int iPort;
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 		if(sshTunnel)
 		{
 			//Ask Tunnel Password
@@ -905,13 +905,24 @@ int pgServer::Connect(frmMain *form, bool askPassword, const wxString &pwd, bool
 		if (conn->BackendMinimumVersion(8, 5))
 		{
 			sql += wxT(", CASE WHEN usesuper THEN pg_is_in_recovery() ELSE NULL END as inrecovery");
-			sql += wxT(", CASE WHEN usesuper THEN pg_last_xlog_receive_location() ELSE NULL END as receiveloc");
-			sql += wxT(", CASE WHEN usesuper THEN pg_last_xlog_replay_location() ELSE NULL END as replayloc");
+			if (conn->BackendMinimumVersion(10, 0))
+			{
+				sql += wxT(", CASE WHEN usesuper THEN pg_last_wal_receive_lsn() ELSE NULL END as receiveloc");
+				sql += wxT(", CASE WHEN usesuper THEN pg_last_wal_replay_lsn() ELSE NULL END as replayloc");
+			}
+			else
+			{
+				sql += wxT(", CASE WHEN usesuper THEN pg_last_xlog_receive_location() ELSE NULL END as receiveloc");
+				sql += wxT(", CASE WHEN usesuper THEN pg_last_xlog_replay_location() ELSE NULL END as replayloc");
+			}
 		}
 		if (conn->BackendMinimumVersion(9, 1))
 		{
 			sql += wxT(", CASE WHEN usesuper THEN pg_last_xact_replay_timestamp() ELSE NULL END as replay_timestamp");
-			sql += wxT(", CASE WHEN usesuper AND pg_is_in_recovery() THEN pg_is_xlog_replay_paused() ELSE NULL END as isreplaypaused");
+			if (conn->BackendMinimumVersion(10, 0))
+				sql += wxT(", CASE WHEN usesuper AND pg_is_in_recovery() THEN pg_is_wal_replay_paused() ELSE NULL END as isreplaypaused");
+			else
+				sql += wxT(", CASE WHEN usesuper AND pg_is_in_recovery() THEN pg_is_xlog_replay_paused() ELSE NULL END as isreplaypaused");
 		}
 
 		pgSet *set = ExecuteSet(sql + wxT("\n  FROM pg_user WHERE usename=current_user"));
@@ -1280,7 +1291,7 @@ void pgServer::ShowTreeDetail(ctlTree *browser, frmMain *form, ctlListView *prop
 		if (!GetDbRestriction().IsEmpty())
 			properties->AppendItem(_("DB restriction"), GetDbRestriction());
 
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 		if(sshTunnel)
 		{
 			properties->AppendItem(_("SSH tunneling?"), (sshTunnel ? _("Yes") : _("No")));
@@ -1304,7 +1315,7 @@ void pgServer::ShowTreeDetail(ctlTree *browser, frmMain *form, ctlListView *prop
 	}
 }
 
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 
 bool pgServer::createSSHTunnel()
 {
@@ -1531,7 +1542,7 @@ pgObject *pgServerFactory::CreateObjects(pgCollection *obj, ctlTree *browser, co
 	wxString storePwd, rolename, restore, serviceID, discoveryID, dbRestriction, colour;
 	wxString group, sslcert, sslkey, sslrootcert, sslcrl, sslcompression;
 
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 	wxString sshTunnel, authModePwd, tunnelHost, tunnelUserName, tunnelPassword, publicKeyFile, identityFile;
 	long tunnelPort;
 #endif
@@ -1573,7 +1584,7 @@ pgObject *pgServerFactory::CreateObjects(pgCollection *obj, ctlTree *browser, co
 		settings->Read(key + wxT("SSLRootCert"), &sslrootcert, wxEmptyString);
 		settings->Read(key + wxT("SSLCrl"), &sslcrl, wxEmptyString);
 		settings->Read(key + wxT("SSLCompression"), &sslcompression, wxT("true"));
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 		settings->Read(key + wxT("SSHTunnel"), &sshTunnel, wxT("false"));
 		settings->Read(key + wxT("TunnelHost"), &tunnelHost, wxEmptyString);
 		settings->Read(key + wxT("TunnelUserName"), &tunnelUserName, wxEmptyString);
@@ -1614,7 +1625,7 @@ pgObject *pgServerFactory::CreateObjects(pgCollection *obj, ctlTree *browser, co
 		}
 
 		// Add the Server node
-#if defined(HAVE_OPENSSL_CRYPTO) || defined(HAVE_GCRYPT)
+#ifdef LIBSSH2
 		server = new pgServer(servername, hostaddr, description, service, database, username, port, StrToBool(storePwd), rolename, StrToBool(restore), ssl,
 		                      colour, group, StrToBool(sshTunnel), tunnelHost, tunnelUserName, StrToBool(authModePwd), tunnelPassword, publicKeyFile, identityFile, tunnelPort);
 #else

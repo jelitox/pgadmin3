@@ -1,7 +1,7 @@
 #######################################################################
 #
 # pgAdmin III - PostgreSQL Tools
-# 
+#
 # Copyright (C) 2002 - 2016, The pgAdmin Development Team
 # This software is released under the PostgreSQL Licence
 #
@@ -30,7 +30,7 @@ AC_DEFUN([CHECK_SUN_COMPILER],
        SUN_STR=`head -1 test.txt |cut -f2 -d" "`
        rm -rf test.txt
        if test "$SUN_STR" = "Sun"; then
-	       SUN_CC_COMPILER=yes 
+	       SUN_CC_COMPILER=yes
        fi
 
        $CXX -V 2>test.txt
@@ -85,7 +85,7 @@ AC_DEFUN([LOCATE_WXWIDGETS],
 
 		fi
 		WX_CONFIG=${WX_HOME}/bin/wx-config
-	], 
+	],
 	[
 		WX_HOME=/usr/local/wx2
 		if test ! -f "${WX_HOME}/bin/wx-config"
@@ -348,6 +348,26 @@ AC_DEFUN([ENABLE_DATABASEDESIGNER],
 ])
 AC_SUBST(HAVE_DATABASEDESIGNER)
 
+########################################
+# Enable libssh2 tunnel in pgAdmin3    #
+########################################
+AC_DEFUN([ENABLE_LIBSSH2],
+[
+	AC_ARG_ENABLE(libssh2, [  --enable-libssh2	add ssh tunneling option in pgAdmin3],
+	[
+		if test "$enableval" = yes
+		then
+			HAVE_LIBSSH2=yes
+		else
+			HAVE_LIBSSH2=no
+		fi
+	],
+	[
+		HAVE_LIBSSH2=yes
+	])
+])
+AC_SUBST(HAVE_LIBSSH2)
+
 ###########################
 # Debug build of pgAdmin3 #
 ###########################
@@ -463,19 +483,19 @@ AC_DEFUN([SETUP_POSTGRESQL],
 	if test -n "${PG_HOME}"
 	then
 	    PG_LIB=`${PG_CONFIG} --libdir`
-		
+
 		PGSQL_OLD_LDFLAGS="$LDFLAGS"
 		PGSQL_OLD_CPPFLAGS="$CPPFLAGS"
 
-		AC_LANG_SAVE    
-		AC_LANG_C	       
+		AC_LANG_SAVE
+		AC_LANG_C
 		AC_CHECK_LIB(ssl, SSL_library_init, [LIB_SSL=yes], [LIB_SSL=no])
-		AC_LANG_RESTORE	 
+		AC_LANG_RESTORE
 
-		AC_LANG_SAVE    
-		AC_LANG_C	       
+		AC_LANG_SAVE
+		AC_LANG_C
 		AC_CHECK_LIB(krb5, krb5_sendauth, [LIB_KRB5=yes], [LIB_KRB5=no])
-		AC_LANG_RESTORE	 
+		AC_LANG_RESTORE
 
 
 		# Solaris/Mac need -lssl for this test
@@ -493,7 +513,7 @@ AC_DEFUN([SETUP_POSTGRESQL],
 				;;
 		esac
 
-		
+
 		# Check for PQexec (basic sanity check!)
 		if test "$BUILD_STATIC" = "yes"
 		then
@@ -501,16 +521,16 @@ AC_DEFUN([SETUP_POSTGRESQL],
 			if test "$(nm ${PG_LIB}/libpq.a | grep -c PQexec)" -gt 0
 			then
 				AC_MSG_RESULT(present)
-				PG_LIBPQ="yes" 
-			else    
+				PG_LIBPQ="yes"
+			else
 				AC_MSG_RESULT(not present)
 				PG_LIBPQ="no"
-			fi	      
-		else			    
-			AC_LANG_SAVE    
-			AC_LANG_C	       
+			fi
+		else
+			AC_LANG_SAVE
+			AC_LANG_C
 			AC_CHECK_LIB(pq, PQexec, [PG_LIBPQ=yes], [PG_LIBPQ=no])
-			AC_LANG_RESTORE	 
+			AC_LANG_RESTORE
 		fi
 
 		# Check for PQconninfoParse
@@ -545,7 +565,7 @@ AC_DEFUN([SETUP_POSTGRESQL],
 			then
 				AC_MSG_RESULT(present)
 				PG_SSL="yes"
-			else   
+			else
 				AC_MSG_RESULT(not present)
 				PG_SSL="no"
 			fi
@@ -608,11 +628,11 @@ AC_DEFUN([SETUP_POSTGRESQL],
 
 		AC_LANG_RESTORE
 
-		PG_INCLUDE=`${PG_CONFIG} --includedir` 
+		PG_INCLUDE=`${PG_CONFIG} --includedir`
 		PG_SVRINCLUDE=`${PG_CONFIG} --includedir-server`
 		PG_PKGINCLUDE=`${PG_CONFIG} --pkgincludedir`
 		CPPFLAGS="$CPPFLAGS -I${PG_INCLUDE} -I${PG_SVRINCLUDE} -I${PG_PKGINCLUDE}"
-	
+
 		PG_VERSION=`${PG_CONFIG} --version`
 
 		if test "$build_os" = "mingw32"
@@ -621,7 +641,7 @@ AC_DEFUN([SETUP_POSTGRESQL],
 		else
 			CRYPTO_LIB="-lcrypto"
 		fi
-		
+
 		if test "$BUILD_STATIC" = "yes"
 		then
 			if test "$build_cpu-$build_vendor" = "powerpc-apple" -o "$build_cpu-$build_vendor" = "i386-apple" -o "$build_cpu-$build_vendor" = "i686-apple"
@@ -680,6 +700,10 @@ AC_DEFUN([SETUP_POSTGRESQL],
 		then
 			CPPFLAGS="$CPPFLAGS -DDATABASEDESIGNER"
 		fi
+		if test "$HAVE_LIBSSH2" = "yes"
+		then
+			CPPFLAGS="$CPPFLAGS -DLIBSSH2"
+		fi
 
 		# Avoid linking with things we don't need. Really this is a hack
 		# to prevent png2c linking with libpq with gcc on non-OSX OSs
@@ -735,14 +759,14 @@ AC_DEFUN([SETUP_WXWIDGETS],
 		LDFLAGS="$LDFLAGS -L${WX_HOME}/lib"
 		WX_OLD_LDFLAGS="$LDFLAGS"
 		WX_OLD_CPPFLAGS="$CPPFLAGS"
-	
+
 		if test "$BUILD_DEBUG" = yes
 		then
 			WX_NEW_CPPFLAGS=`${WX_CONFIG} --cppflags --unicode=yes --debug=yes --version=${WX_VERSION} 2> /dev/null`
 			CPPFLAGS="$CPPFLAGS $WX_NEW_CPPFLAGS"
 			CFLAGS=`echo $CFLAGS | sed -e "s/-O2/-O0/g"`
 			CXXFLAGS=`echo $CXXFLAGS | sed -e "s/-O2/-O0/g"`
-			
+
 			pgadmin3_LDADD=`${WX_CONFIG} ${WX_STATIC} --libs std,stc,aui --unicode=yes --debug=yes --version=${WX_VERSION} 2> /dev/null`
 			pgsTest_LDADD=`${WX_CONFIG} ${WX_STATIC} --libs base,core,xml --unicode=yes --debug=yes --version=${WX_VERSION} 2> /dev/null`
 			pgScript_LDADD=`${WX_CONFIG} ${WX_STATIC} --libs base,core,xml --unicode=yes --debug=yes --version=${WX_VERSION} 2> /dev/null`
@@ -751,7 +775,7 @@ AC_DEFUN([SETUP_WXWIDGETS],
 			CPPFLAGS="$CPPFLAGS $WX_NEW_CPPFLAGS -DEMBED_XRC"
 			CFLAGS=`echo $CFLAGS | sed -e "s/-g //g"`
 			CXXFLAGS=`echo $CXXFLAGS | sed -e "s/-g //g"`
-		
+
 			pgadmin3_LDADD=`${WX_CONFIG} ${WX_STATIC} --libs std,stc,aui --unicode=yes --debug=no --version=${WX_VERSION} 2> /dev/null`
 			pgsTest_LDADD=`${WX_CONFIG} ${WX_STATIC} --libs base,core,xml --unicode=yes --debug=no --version=${WX_VERSION} 2> /dev/null`
 			pgScript_LDADD=`${WX_CONFIG} ${WX_STATIC} --libs base,core,xml --unicode=yes --debug=no --version=${WX_VERSION} 2> /dev/null`
@@ -776,12 +800,12 @@ AC_DEFUN([SETUP_WXWIDGETS],
 				fi
 
 				LDFLAGS="$LDFLAGS -headerpad_max_install_names"
-				CPPFLAGS="$CPPFLAGS $OSX_ARCH" 
+				CPPFLAGS="$CPPFLAGS $OSX_ARCH"
 
 				# Strip any existing arch flags from LDFLAGS and add the desired ones
 				# This is required as wxWidgets 2.8 (but not 2.9) includes the arch flags
 				# in it's --libs output.
-				pgadmin3_LDADD=`echo $pgadmin3_LDADD | sed -e "s/-arch ppc//g" -e "s/-arch i386//g" -e "s/-arch x86_64//g" -e "s/-arch ppc64//g"` 
+				pgadmin3_LDADD=`echo $pgadmin3_LDADD | sed -e "s/-arch ppc//g" -e "s/-arch i386//g" -e "s/-arch x86_64//g" -e "s/-arch ppc64//g"`
 				pgadmin3_LDADD="$pgadmin3_LDADD $OSX_ARCH"
 				pgsTest_LDADD=`echo $pgsTest_LDADD | sed -e "s/-arch ppc//g" -e "s/-arch i386//g" -e "s/-arch x86_64//g" -e "s/-arch ppc64//g"`
 				pgsTest_LDADD="$pgsTest_LDADD $OSX_ARCH"
@@ -827,7 +851,7 @@ AC_DEFUN([SETUP_LIBXML2],
 ])
 AC_SUBST(XML2_CONFIG)
 AC_SUBST(pgadmin3_LDADD)
-	
+
 #########################
 # Setup libxslt headers #
 #########################
@@ -852,11 +876,26 @@ AC_DEFUN([SETUP_LIBXSLT],
 AC_SUBST(XSLT_CONFIG)
 AC_SUBST(pgadmin3_LDADD)
 
-#################
-# Setup libssh2 #
-#################
-
-sinclude(acinclude-ssh2.m4)
+#########################
+# Setup libssh2 headers #
+#########################
+AC_DEFUN([SETUP_LIBSSH2],
+[
+    PKG_CONFIG="pkg-config"
+    LIBSSH2_CFLAGS=`${PKG_CONFIG} libssh2 --cflags`
+    LIBSSH2_LIBS=`${PKG_CONFIG} libssh2 --libs`
+    if test "${LIBSSH2_LIBS}" = ""
+    then
+        AC_MSG_RESULT(failed)
+        AC_MSG_ERROR([Your libssh2 installation does not appear to be complete])
+    else
+        AC_MSG_RESULT(ok)
+        CPPFLAGS="$CPPFLAGS $LIBSSH2_CFLAGS"
+        pgadmin3_LDADD="${pgadmin3_LDADD} $LIBSSH2_LIBS"
+    fi
+])
+AC_SUBST(PKG_CONFIG)
+AC_SUBST(pgadmin3_LDADD)
 
 
 #########################
@@ -901,24 +940,11 @@ AC_DEFUN([SUMMARY],
 	else
 		echo "Building Database Designer:		No"
 	fi
-	echo
-	if test "$BUILD_SSH_TUNNEL" = yes
+	if test "$HAVE_LIBSSH2" = yes
 	then
-		echo "Building SSH Tunnel:			Yes"
-		if test "$ac_cv_libssl" = yes
-		then
-			echo "Crypto library:				OpenSSL"
-		else test "$ac_cv_libgcrypt" = yes
-			echo "Crypto library:				libgcrypt"
-		fi
-		if test "$ac_cv_libz" = yes
-		then
-			echo "libz compression:			yes"
-		else
-			echo "libz compression:			no"
-		fi
+		echo "Building ssh tunneling support:   	Yes"
 	else
-		echo "Building SSH Tunnel:			No"
+		echo "Building ssh tunneling support:	    No"
 	fi
 	echo
 	if test "$BUILD_DEBUG" = yes
